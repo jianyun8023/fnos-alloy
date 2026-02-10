@@ -53,5 +53,5 @@ jobs:
         run: |
           TAG="${{ steps.upstream.outputs.tag }}"
           VERSION="${TAG#v}"
-          gh workflow run release.yml -f alloy_version="${VERSION}"
+          gh workflow run release.yml -f alloy_version="${VERSION}" -f create_release=true
           echo "::notice::Triggered release workflow for version ${VERSION}"

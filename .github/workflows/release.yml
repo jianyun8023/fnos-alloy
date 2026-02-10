@@ -10,6 +10,10 @@ on:
         description: "Grafana Alloy 版本号 (例如 1.13.0)"
         required: true
         default: "1.13.0"
+      create_release:
+        description: "是否创建 GitHub Release"
+        type: boolean
+        default: false
 
 env:
   APP_NAME: grafana.alloy
@@ -70,7 +74,7 @@ jobs:
     name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
+    if: github.event_name == 'push' || inputs.create_release == true
     permissions:
       contents: write
     steps:
@@ -78,7 +82,13 @@ jobs:
 
       - name: Determine version
         id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.alloy_version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       # ── 基础 Action: 创建 Release ──
       - name: Release FPK

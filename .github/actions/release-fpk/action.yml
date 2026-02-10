@@ -87,6 +87,7 @@ runs:
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
+        tag_name: "v${{ inputs.version }}"
         name: "${{ inputs.display-name }} v${{ inputs.version }} for fnOS"
         files: "*.fpk"
         generate_release_notes: false
