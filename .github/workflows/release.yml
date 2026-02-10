@@ -1,0 +1,91 @@
+name: Build and Release FPK
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      alloy_version:
+        description: "Grafana Alloy 版本号 (例如 1.13.0)"
+        required: true
+        default: "1.13.0"
+
+env:
+  APP_NAME: grafana.alloy
+  DISPLAY_NAME: Grafana Alloy
+
+jobs:
+  build:
+    name: Build FPK (${{ matrix.platform }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: x86
+            alloy_asset: alloy-linux-amd64
+          - platform: arm
+            alloy_asset: alloy-linux-arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.alloy_version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Alloy version: ${VERSION}"
+
+      # ── 基础 Action: 安装 fnpack ──
+      - name: Setup fnpack
+        uses: ./.github/actions/setup-fnpack
+
+      # ── 应用特定: 下载 Grafana Alloy 二进制 ──
+      - name: Download Grafana Alloy binary
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          DOWNLOAD_URL="https://github.com/grafana/alloy/releases/download/v${VERSION}/${{ matrix.alloy_asset }}.zip"
+          echo "Downloading: ${DOWNLOAD_URL}"
+          curl -fsSL "${DOWNLOAD_URL}" -o /tmp/alloy.zip
+          unzip /tmp/alloy.zip -d /tmp/alloy-extract
+          mkdir -p app/bin
+          mv "/tmp/alloy-extract/${{ matrix.alloy_asset }}" app/bin/alloy
+          chmod +x app/bin/alloy
+
+      # ── 基础 Action: 构建 FPK 包 ──
+      - name: Build FPK
+        uses: ./.github/actions/build-fpk
+        with:
+          app-name: ${{ env.APP_NAME }}
+          version: ${{ steps.version.outputs.version }}
+          platform: ${{ matrix.platform }}
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      # ── 基础 Action: 创建 Release ──
+      - name: Release FPK
+        uses: ./.github/actions/release-fpk
+        with:
+          app-name: ${{ env.APP_NAME }}
+          version: ${{ steps.version.outputs.version }}
+          display-name: ${{ env.DISPLAY_NAME }}
+          description: "可观测性数据收集器，收集系统日志、应用日志发送到 Loki。"
+          upstream-repo: "https://github.com/grafana/alloy"

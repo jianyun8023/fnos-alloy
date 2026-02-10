@@ -1,0 +1,49 @@
+[
+    {
+        "stepTitle": "Loki 服务配置",
+        "items": [
+            {
+                "type": "tips",
+                "helpText": "欢迎使用 Grafana Alloy！请配置日志发送目标。"
+            },
+            {
+                "type": "text",
+                "field": "wizard_loki_url",
+                "label": "Loki Push URL",
+                "initValue": "http://localhost:3100/loki/api/v1/push",
+                "description": "Loki 服务的日志推送端点地址",
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请输入 Loki URL"
+                    }
+                ]
+            },
+            {
+                "type": "switch",
+                "field": "wizard_auth_enabled",
+                "label": "启用认证"
+            },
+            {
+                "type": "text",
+                "field": "wizard_hostname",
+                "label": "主机名",
+                "initValue": "fnos",
+                "description": "用于标识当前设备",
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请输入主机名"
+                    }
+                ]
+            },
+            {
+                "type": "switch",
+                "field": "wizard_disable_reporting",
+                "label": "禁用匿名使用统计上报",
+                "initValue": "true",
+                "description": "Alloy 默认会上报匿名使用统计，建议保持关闭"
+            }
+        ]
+    }
+]

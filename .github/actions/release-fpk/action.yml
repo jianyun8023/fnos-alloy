@@ -1,0 +1,93 @@
+name: Release FPK
+description: 下载 FPK artifact 并创建 GitHub Release
+
+inputs:
+  app-name:
+    description: "应用名称"
+    required: true
+  version:
+    description: "应用版本号"
+    required: true
+  display-name:
+    description: "应用显示名称（用于 Release 标题）"
+    required: true
+  description:
+    description: "应用简介"
+    required: false
+    default: ""
+  upstream-repo:
+    description: "上游项目地址（如 https://github.com/grafana/alloy），留空则不显示"
+    required: false
+    default: ""
+  body:
+    description: "自定义 Release Body（提供后将覆盖默认模板）"
+    required: false
+    default: ""
+  artifact-pattern:
+    description: "下载 artifact 的 pattern"
+    required: false
+    default: "fpk-*"
+
+runs:
+  using: composite
+  steps:
+    - name: Download all FPK artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: ${{ inputs.artifact-pattern }}
+        merge-multiple: true
+
+    - name: List release assets
+      shell: bash
+      run: ls -lh *.fpk
+
+    - name: Prepare release body
+      id: body
+      shell: bash
+      env:
+        CUSTOM_BODY: ${{ inputs.body }}
+        APP_NAME: ${{ inputs.app-name }}
+        VERSION: ${{ inputs.version }}
+        DISPLAY_NAME: ${{ inputs.display-name }}
+        DESCRIPTION: ${{ inputs.description }}
+        UPSTREAM_REPO: ${{ inputs.upstream-repo }}
+      run: |
+        BODY_FILE="/tmp/fpk-release-body.md"
+
+        if [ -n "${CUSTOM_BODY}" ]; then
+          printf '%s\n' "${CUSTOM_BODY}" > "${BODY_FILE}"
+        else
+          cat > "${BODY_FILE}" <<EOF
+        ## ${DISPLAY_NAME} v${VERSION} for fnOS
+
+        ${DESCRIPTION}
+
+        ### 下载安装
+
+        | 文件 | 平台 |
+        |------|------|
+        | \`${APP_NAME}_${VERSION}_x86.fpk\` | Intel / AMD 64 位 |
+        | \`${APP_NAME}_${VERSION}_arm.fpk\` | ARM 64 位 |
+
+        ### 安装方式
+        1. 下载对应平台的 \`.fpk\` 文件
+        2. 打开 fnOS **应用中心** → 手动安装
+        3. 上传 \`.fpk\` 文件完成安装
+        EOF
+
+          if [ -n "${UPSTREAM_REPO}" ]; then
+            cat >> "${BODY_FILE}" <<EOF
+
+        ### 基于
+        - [${DISPLAY_NAME} v${VERSION}](${UPSTREAM_REPO}/releases/tag/v${VERSION})
+        EOF
+          fi
+        fi
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: "${{ inputs.display-name }} v${{ inputs.version }} for fnOS"
+        files: "*.fpk"
+        generate_release_notes: false
+        body_path: /tmp/fpk-release-body.md

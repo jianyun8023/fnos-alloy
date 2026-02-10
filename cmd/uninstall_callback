@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Grafana Alloy 卸载回调脚本
+# 在应用卸载后执行，清理数据
+
+LOG_FILE="${TRIM_PKGVAR}/info.log"
+
+log_msg() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - [uninstall] $1" >> ${LOG_FILE}
+}
+
+# 停止进程（如果还在运行）
+if [ -f "${TRIM_PKGVAR}/alloy.pid" ]; then
+    pid=$(cat "${TRIM_PKGVAR}/alloy.pid")
+    if kill -0 "${pid}" 2>/dev/null; then
+        kill -TERM "${pid}" 2>/dev/null
+        sleep 2
+        kill -KILL "${pid}" 2>/dev/null
+    fi
+    rm -f "${TRIM_PKGVAR}/alloy.pid"
+fi
+
+log_msg "Uninstall callback completed"

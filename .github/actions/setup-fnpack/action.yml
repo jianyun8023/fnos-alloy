@@ -1,0 +1,36 @@
+name: Setup fnpack
+description: 安装 fnOS FPK 打包工具 fnpack
+
+inputs:
+  version:
+    description: "fnpack 版本号"
+    required: false
+    default: "1.2.1"
+
+runs:
+  using: composite
+  steps:
+    - name: Install fnpack
+      shell: bash
+      run: |
+        echo "::group::Install fnpack v${{ inputs.version }}"
+        # 检测 OS: linux / darwin / windows
+        case "$(uname -s)" in
+          Linux)  OS="linux" ;;
+          Darwin) OS="darwin" ;;
+          *)      echo "::error::不支持的操作系统: $(uname -s)"; exit 1 ;;
+        esac
+        # 检测架构: amd64 / arm64
+        case "$(uname -m)" in
+          x86_64|amd64)  ARCH="amd64" ;;
+          aarch64|arm64) ARCH="arm64" ;;
+          *)             echo "::error::不支持的架构: $(uname -m)"; exit 1 ;;
+        esac
+        FNPACK_URL="https://static2.fnnas.com/fnpack/fnpack-${{ inputs.version }}-${OS}-${ARCH}"
+        echo "Platform: ${OS}-${ARCH}"
+        echo "Download: ${FNPACK_URL}"
+        curl -fsSL "${FNPACK_URL}" -o /usr/local/bin/fnpack
+        chmod +x /usr/local/bin/fnpack
+        echo "fnpack installed to /usr/local/bin/fnpack"
+        fnpack --help 2>&1 | head -5 || true
+        echo "::endgroup::"

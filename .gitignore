@@ -1,0 +1,15 @@
+# Alloy 平台二进制文件（CI 中按平台下载）
+app/bin/alloy
+
+# fnpack 工具（按需下载）
+fnpack
+
+# 构建产物
+*.fpk
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/

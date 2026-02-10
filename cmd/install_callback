@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Grafana Alloy 安装回调脚本
+# 处理安装向导输入，初始化配置
+
+LOG_FILE="${TRIM_PKGVAR}/info.log"
+SETTINGS_FILE="${TRIM_PKGVAR}/settings.json"
+
+log_msg() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - [install] $1" >> ${LOG_FILE}
+}
+
+# 创建必要的目录
+mkdir -p "${TRIM_PKGVAR}/data"
+
+log_msg "Install callback started"
+
+# 读取安装向导输入
+LOKI_URL="${wizard_loki_url:-http://localhost:3100/loki/api/v1/push}"
+AUTH_ENABLED="${wizard_auth_enabled:-false}"
+HOSTNAME="${wizard_hostname:-fnos}"
+
+# 转换 auth_enabled 为 boolean
+if [ "$AUTH_ENABLED" = "true" ] || [ "$AUTH_ENABLED" = "1" ]; then
+    AUTH_ENABLED_BOOL="true"
+else
+    AUTH_ENABLED_BOOL="false"
+fi
+
+# 生成初始 settings.json
+cat > "${SETTINGS_FILE}" << EOF
+{
+    "loki_url": "${LOKI_URL}",
+    "auth_enabled": ${AUTH_ENABLED_BOOL},
+    "auth_username": "",
+    "auth_password": "",
+    "auth_tenant": "",
+    "hostname": "${HOSTNAME}",
+    "platform": "fnos",
+    "custom_labels": {}
+}
+EOF
+
+log_msg "Initial settings saved: loki_url=${LOKI_URL}, hostname=${HOSTNAME}"
+log_msg "Install callback completed"

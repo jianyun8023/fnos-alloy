@@ -1,0 +1,75 @@
+#!/bin/bash
+
+# Grafana Alloy 配置回调脚本
+# 处理向导配置输入，生成 settings.json
+
+LOG_FILE="${TRIM_PKGVAR}/info.log"
+SETTINGS_FILE="${TRIM_PKGVAR}/settings.json"
+
+log_msg() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - [config] $1" >> ${LOG_FILE}
+}
+
+log_msg "Config callback started"
+log_msg "Processing wizard configuration..."
+
+# 读取向导输入的环境变量
+LOKI_URL="${wizard_loki_url:-http://localhost:3100/loki/api/v1/push}"
+AUTH_ENABLED="${wizard_auth_enabled:-false}"
+AUTH_USERNAME="${wizard_auth_username:-}"
+AUTH_PASSWORD="${wizard_auth_password:-}"
+AUTH_TENANT="${wizard_auth_tenant:-}"
+HOSTNAME="${wizard_hostname:-fnos}"
+DISABLE_REPORTING="${wizard_disable_reporting:-true}"
+
+# 处理自定义标签
+CUSTOM_LABELS="{}"
+if [ -n "$wizard_custom_label_1_key" ] && [ -n "$wizard_custom_label_1_value" ]; then
+    CUSTOM_LABELS=$(echo "$CUSTOM_LABELS" | jq --arg k "$wizard_custom_label_1_key" --arg v "$wizard_custom_label_1_value" '. + {($k): $v}')
+fi
+if [ -n "$wizard_custom_label_2_key" ] && [ -n "$wizard_custom_label_2_value" ]; then
+    CUSTOM_LABELS=$(echo "$CUSTOM_LABELS" | jq --arg k "$wizard_custom_label_2_key" --arg v "$wizard_custom_label_2_value" '. + {($k): $v}')
+fi
+if [ -n "$wizard_custom_label_3_key" ] && [ -n "$wizard_custom_label_3_value" ]; then
+    CUSTOM_LABELS=$(echo "$CUSTOM_LABELS" | jq --arg k "$wizard_custom_label_3_key" --arg v "$wizard_custom_label_3_value" '. + {($k): $v}')
+fi
+
+# 转换 auth_enabled 为 boolean
+if [ "$AUTH_ENABLED" = "true" ] || [ "$AUTH_ENABLED" = "1" ]; then
+    AUTH_ENABLED_BOOL="true"
+else
+    AUTH_ENABLED_BOOL="false"
+fi
+
+# 转换 disable_reporting 为 boolean
+if [ "$DISABLE_REPORTING" = "false" ] || [ "$DISABLE_REPORTING" = "0" ]; then
+    DISABLE_REPORTING_BOOL="false"
+else
+    DISABLE_REPORTING_BOOL="true"
+fi
+
+# 生成 settings.json
+cat > "${SETTINGS_FILE}" << EOF
+{
+    "loki_url": "${LOKI_URL}",
+    "auth_enabled": ${AUTH_ENABLED_BOOL},
+    "auth_username": "${AUTH_USERNAME}",
+    "auth_password": "${AUTH_PASSWORD}",
+    "auth_tenant": "${AUTH_TENANT}",
+    "hostname": "${HOSTNAME}",
+    "platform": "fnos",
+    "disable_reporting": ${DISABLE_REPORTING_BOOL},
+    "custom_labels": ${CUSTOM_LABELS}
+}
+EOF
+
+log_msg "Settings saved: loki_url=${LOKI_URL}, auth_enabled=${AUTH_ENABLED_BOOL}, hostname=${HOSTNAME}"
+log_msg "Config callback completed"
+
+# 重新生成 Alloy 配置并重载
+# TRIM_APPDEST 指向 target 目录，cmd/ 在应用根目录 /var/apps/[appname]/cmd/
+APP_ROOT="/var/apps/grafana.alloy"
+if [ -x "${APP_ROOT}/cmd/main" ]; then
+    "${APP_ROOT}/cmd/main" reload >> ${LOG_FILE} 2>&1
+    log_msg "Configuration reloaded"
+fi

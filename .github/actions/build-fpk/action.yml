@@ -1,0 +1,64 @@
+name: Build FPK
+description: 构建 fnOS FPK 应用包（更新 manifest、打包、上传 artifact）
+
+inputs:
+  app-name:
+    description: "应用名称，即 manifest 中的 appname（如 grafana.alloy）"
+    required: true
+  version:
+    description: "应用版本号"
+    required: true
+  platform:
+    description: "目标平台：x86 或 arm"
+    required: true
+  upload:
+    description: "是否上传为 GitHub artifact"
+    required: false
+    default: "true"
+  retention-days:
+    description: "artifact 保留天数"
+    required: false
+    default: "5"
+
+outputs:
+  fpk-name:
+    description: "生成的 FPK 文件名"
+    value: ${{ steps.build.outputs.fpk_name }}
+
+runs:
+  using: composite
+  steps:
+    - name: Update manifest
+      shell: bash
+      run: |
+        echo "::group::Update manifest (version=${{ inputs.version }}, platform=${{ inputs.platform }})"
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+          sed -i '' "s/^version[[:space:]]*=.*/version               = ${{ inputs.version }}/" manifest
+          sed -i '' "s/^platform[[:space:]]*=.*/platform              = ${{ inputs.platform }}/" manifest
+        else
+          sed -i "s/^version[[:space:]]*=.*/version               = ${{ inputs.version }}/" manifest
+          sed -i "s/^platform[[:space:]]*=.*/platform              = ${{ inputs.platform }}/" manifest
+        fi
+        echo "--- manifest ---"
+        cat manifest
+        echo "::endgroup::"
+
+    - name: Build FPK with fnpack
+      id: build
+      shell: bash
+      run: |
+        echo "::group::Build FPK"
+        fnpack build
+        FPK_NAME="${{ inputs.app-name }}_${{ inputs.version }}_${{ inputs.platform }}.fpk"
+        mv "${{ inputs.app-name }}.fpk" "${FPK_NAME}"
+        ls -lh "${FPK_NAME}"
+        echo "fpk_name=${FPK_NAME}" >> "$GITHUB_OUTPUT"
+        echo "::endgroup::"
+
+    - name: Upload FPK artifact
+      if: ${{ inputs.upload == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: fpk-${{ inputs.platform }}
+        path: ${{ steps.build.outputs.fpk_name }}
+        retention-days: ${{ inputs.retention-days }}

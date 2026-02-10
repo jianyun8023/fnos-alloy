@@ -1,0 +1,147 @@
+[
+    {
+        "stepTitle": "Loki 服务配置",
+        "items": [
+            {
+                "type": "tips",
+                "helpText": "配置 Grafana Alloy 将日志发送到 Loki 服务。"
+            },
+            {
+                "type": "text",
+                "field": "wizard_loki_url",
+                "label": "Loki Push URL",
+                "initValue": "http://localhost:3100/loki/api/v1/push",
+                "description": "Loki 服务的日志推送端点地址",
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请输入 Loki URL"
+                    },
+                    {
+                        "pattern": "^https?://",
+                        "message": "URL 必须以 http:// 或 https:// 开头"
+                    }
+                ]
+            },
+            {
+                "type": "switch",
+                "field": "wizard_auth_enabled",
+                "label": "启用认证",
+                "description": "如果 Loki 需要认证，请开启此选项"
+            },
+            {
+                "type": "switch",
+                "field": "wizard_disable_reporting",
+                "label": "禁用匿名使用统计上报",
+                "initValue": "true",
+                "description": "Alloy 默认会上报匿名使用统计，建议保持关闭"
+            }
+        ]
+    },
+    {
+        "stepTitle": "认证配置",
+        "items": [
+            {
+                "type": "tips",
+                "helpText": "如果您的 Loki 服务需要认证（如 Grafana Cloud），请在此填写认证信息。不需要认证可跳过。"
+            },
+            {
+                "type": "text",
+                "field": "wizard_auth_username",
+                "label": "用户名",
+                "initValue": "",
+                "description": "Loki Basic Auth 用户名"
+            },
+            {
+                "type": "password",
+                "field": "wizard_auth_password",
+                "label": "密码",
+                "description": "Loki Basic Auth 密码或 API Token"
+            },
+            {
+                "type": "text",
+                "field": "wizard_auth_tenant",
+                "label": "租户 ID（可选）",
+                "initValue": "",
+                "description": "多租户 Loki 集群需要填写"
+            }
+        ]
+    },
+    {
+        "stepTitle": "标签配置",
+        "items": [
+            {
+                "type": "tips",
+                "helpText": "配置附加到所有日志的标签，用于在 Grafana 中区分不同来源。"
+            },
+            {
+                "type": "text",
+                "field": "wizard_hostname",
+                "label": "主机名 (hostname)",
+                "initValue": "fnos",
+                "description": "用于标识当前设备",
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请输入主机名"
+                    },
+                    {
+                        "pattern": "^[a-zA-Z0-9_-]+$",
+                        "message": "主机名只能包含字母、数字、下划线和横线"
+                    }
+                ]
+            },
+            {
+                "type": "tips",
+                "helpText": "平台标签固定为 'fnos'，无需配置。"
+            }
+        ]
+    },
+    {
+        "stepTitle": "自定义标签",
+        "items": [
+            {
+                "type": "tips",
+                "helpText": "添加额外的标签用于日志分类（可选）。"
+            },
+            {
+                "type": "text",
+                "field": "wizard_custom_label_1_key",
+                "label": "自定义标签 1 - 名称",
+                "initValue": "",
+                "description": "如: env / region / team"
+            },
+            {
+                "type": "text",
+                "field": "wizard_custom_label_1_value",
+                "label": "自定义标签 1 - 值",
+                "initValue": "",
+                "description": "如: production / asia / devops"
+            },
+            {
+                "type": "text",
+                "field": "wizard_custom_label_2_key",
+                "label": "自定义标签 2 - 名称",
+                "initValue": ""
+            },
+            {
+                "type": "text",
+                "field": "wizard_custom_label_2_value",
+                "label": "自定义标签 2 - 值",
+                "initValue": ""
+            },
+            {
+                "type": "text",
+                "field": "wizard_custom_label_3_key",
+                "label": "自定义标签 3 - 名称",
+                "initValue": ""
+            },
+            {
+                "type": "text",
+                "field": "wizard_custom_label_3_value",
+                "label": "自定义标签 3 - 值",
+                "initValue": ""
+            }
+        ]
+    }
+]

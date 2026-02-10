@@ -1,0 +1,373 @@
+// ==========================================
+// 飞牛 OS (FnOS) Alloy 配置模板
+// 使用 journal + 应用日志采集
+// 支持认证和自定义标签
+// ==========================================
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+// ==========================================
+// 1. 系统日志 - 使用 systemd journal
+// ==========================================
+
+loki.source.journal "system" {
+  max_age = "12h"
+
+  labels = {
+    job      = "systemd-journal",
+    log_type = "system",
+  }
+
+  relabel_rules = discovery.relabel.journal_relabel.rules
+  forward_to    = [loki.write.to_loki.receiver]
+}
+
+discovery.relabel "journal_relabel" {
+  targets = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+
+  rule {
+    source_labels = ["__journal__hostname"]
+    target_label  = "nodename"
+  }
+
+  rule {
+    source_labels = ["__journal_syslog_identifier"]
+    target_label  = "program"
+  }
+
+  rule {
+    source_labels = ["__journal_priority_keyword"]
+    target_label  = "level"
+  }
+
+  rule {
+    source_labels = ["__journal__transport"]
+    target_label  = "transport"
+  }
+}
+
+// ==========================================
+// 2. 飞牛 Trim 应用日志
+// ==========================================
+
+loki.source.file "trim_apps" {
+  targets = [
+    {
+      __path__ = "/var/log/apps/trim.photos.log",
+      job      = "fnos-photos",
+      app      = "photos",
+      category = "trim-app",
+    },
+    {
+      __path__ = "/var/log/apps/trim.text-editor.log",
+      job      = "fnos-text-editor",
+      app      = "text-editor",
+      category = "trim-app",
+    },
+    {
+      __path__ = "/var/log/apps/trim.media.log",
+      job      = "fnos-media",
+      app      = "media",
+      category = "trim-app",
+    },
+    {
+      __path__ = "/var/log/apps/trim.docs.log",
+      job      = "fnos-docs",
+      app      = "docs",
+      category = "trim-app",
+    },
+    {
+      __path__ = "/var/log/apps/trim.snapshots.log",
+      job      = "fnos-snapshots",
+      app      = "snapshots",
+      category = "trim-app",
+    },
+    {
+      __path__ = "/var/log/apps/trim.sync_server.log",
+      job      = "fnos-sync",
+      app      = "sync-server",
+      category = "trim-app",
+    },
+    {
+      __path__ = "/var/log/apps/prometheus.node_exporter.log",
+      job      = "fnos-node-exporter-app",
+      app      = "node-exporter",
+      category = "monitoring",
+    },
+  ]
+  forward_to = [loki.write.to_loki.receiver]
+}
+
+// ==========================================
+// 3. 飞牛系统服务日志
+// ==========================================
+
+loki.source.file "fnos_services" {
+  targets = [
+    {
+      __path__ = "/var/log/accountsrv/info.log",
+      job      = "fnos-account-info",
+      service  = "account",
+      level    = "info",
+    },
+    {
+      __path__ = "/var/log/accountsrv/error.log",
+      job      = "fnos-account-error",
+      service  = "account",
+      level    = "error",
+    },
+    {
+      __path__ = "/var/log/trim_app_center/info.log",
+      job      = "fnos-appcenter-info",
+      service  = "app-center",
+      level    = "info",
+    },
+    {
+      __path__ = "/var/log/trim_app_center/error.log",
+      job      = "fnos-appcenter-error",
+      service  = "app-center",
+      level    = "error",
+    },
+    {
+      __path__ = "/var/log/trim_license/info.log",
+      job      = "fnos-license-info",
+      service  = "license",
+      level    = "info",
+    },
+    {
+      __path__ = "/var/log/trim_license/error.log",
+      job      = "fnos-license-error",
+      service  = "license",
+      level    = "error",
+    },
+    {
+      __path__ = "/var/log/trim_sac/info.log",
+      job      = "fnos-sac-info",
+      service  = "sac",
+      level    = "info",
+    },
+    {
+      __path__ = "/var/log/trim_sac/error.log",
+      job      = "fnos-sac-error",
+      service  = "sac",
+      level    = "error",
+    },
+    {
+      __path__ = "/var/log/trim-sharelink/info.log",
+      job      = "fnos-sharelink",
+      service  = "sharelink",
+    },
+    {
+      __path__ = "/var/log/trim_tfa/info.log",
+      job      = "fnos-tfa-info",
+      service  = "2fa",
+      level    = "info",
+    },
+    {
+      __path__ = "/var/log/trim_tfa/error.log",
+      job      = "fnos-tfa-error",
+      service  = "2fa",
+      level    = "error",
+    },
+  ]
+  forward_to = [loki.write.to_loki.receiver]
+}
+
+// ==========================================
+// 4. Trim Connect (远程连接) 日志
+// ==========================================
+
+loki.source.file "trim_connect" {
+  targets = [
+    {
+      __path__ = "/var/log/trim-connect/info.log",
+      job      = "fnos-connect-info",
+      service  = "trim-connect",
+      level    = "info",
+    },
+    {
+      __path__ = "/var/log/trim-connect/error.log",
+      job      = "fnos-connect-error",
+      service  = "trim-connect",
+      level    = "error",
+    },
+    {
+      __path__ = "/var/log/trim-connect/pxy.info.log",
+      job      = "fnos-connect-proxy-info",
+      service  = "trim-connect-proxy",
+      level    = "info",
+    },
+    {
+      __path__ = "/var/log/trim-connect/pxy.error.log",
+      job      = "fnos-connect-proxy-error",
+      service  = "trim-connect-proxy",
+      level    = "error",
+    },
+  ]
+  forward_to = [loki.write.to_loki.receiver]
+}
+
+// ==========================================
+// 5. 云存储 WebDAV 日志
+// ==========================================
+
+loki.source.file "cloud_storage" {
+  targets = [
+    {
+      __path__ = "/var/log/cloud_storage_dav/info.log",
+      job      = "fnos-webdav-info",
+      service  = "webdav",
+      level    = "info",
+    },
+    {
+      __path__ = "/var/log/cloud_storage_dav/error.log",
+      job      = "fnos-webdav-error",
+      service  = "webdav",
+      level    = "error",
+    },
+  ]
+  forward_to = [loki.write.to_loki.receiver]
+}
+
+// ==========================================
+// 6. 数据库日志 (PostgreSQL)
+// ==========================================
+
+loki.source.file "postgresql" {
+  targets = [
+    {
+      __path__ = "/var/log/postgresql/postgresql-15-main.log",
+      job      = "fnos-postgresql",
+      service  = "postgresql",
+    },
+  ]
+  forward_to = [loki.process.postgresql_parser.receiver]
+}
+
+loki.process "postgresql_parser" {
+  forward_to = [loki.write.to_loki.receiver]
+
+  stage.regex {
+    expression = "^(?P<timestamp>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} \\w+) \\[(?P<pid>\\d+)\\] (?P<level>\\w+):  (?P<message>.*)"
+  }
+
+  stage.timestamp {
+    source = "timestamp"
+    format = "2006-01-02 15:04:05.000 MST"
+  }
+
+  stage.labels {
+    values = {
+      level = "",
+      pid   = "",
+    }
+  }
+
+  stage.drop {
+    expression          = ".*(checkpoint starting|checkpoint complete).*"
+    drop_counter_reason = "checkpoint"
+  }
+}
+
+// ==========================================
+// 7. RabbitMQ 消息队列日志
+// ==========================================
+
+loki.source.file "rabbitmq" {
+  targets = [
+    {
+      __path__ = "/var/log/rabbitmq/rabbit@*.log",
+      job      = "fnos-rabbitmq",
+      service  = "rabbitmq",
+    },
+    {
+      __path__ = "/var/log/rabbitmq/rabbitmq-server.log",
+      job      = "fnos-rabbitmq-server",
+      service  = "rabbitmq",
+    },
+    {
+      __path__ = "/var/log/rabbitmq/rabbitmq-server.error.log",
+      job      = "fnos-rabbitmq-error",
+      service  = "rabbitmq",
+      level    = "error",
+    },
+  ]
+  forward_to = [loki.write.to_loki.receiver]
+}
+
+// ==========================================
+// 8. 其他服务日志
+// ==========================================
+
+loki.source.file "other_services" {
+  targets = [
+    {
+      __path__ = "/var/log/node_exporter.log",
+      job      = "fnos-node-exporter",
+      service  = "monitoring",
+    },
+    {
+      __path__ = "/var/log/rclone_user_*.log",
+      job      = "fnos-rclone",
+      service  = "rclone",
+    },
+  ]
+  forward_to = [loki.write.to_loki.receiver]
+}
+
+// ==========================================
+// 9. NGINX HTTP 访问日志
+// ==========================================
+
+loki.source.file "nginx_security" {
+  targets = [
+    {
+      __path__ = "/usr/trim/nginx/logs/access.log",
+      job      = "fnos-nginx-access",
+      service  = "nginx",
+      category = "security",
+    },
+    {
+      __path__ = "/usr/trim/nginx/logs/error.log",
+      job      = "fnos-nginx-error",
+      service  = "nginx",
+      level    = "error",
+    },
+  ]
+  forward_to = [loki.write.to_loki.receiver]
+}
+
+// ==========================================
+// 10. 发送到 Loki
+// ==========================================
+
+loki.write "to_loki" {
+  endpoint {
+    url = "{{LOKI_URL}}"
+    
+    {{#AUTH_ENABLED}}
+    basic_auth {
+      username = "{{AUTH_USERNAME}}"
+      password = "{{AUTH_PASSWORD}}"
+    }
+    {{/AUTH_ENABLED}}
+    
+    {{#AUTH_TENANT}}
+    tenant_id = "{{AUTH_TENANT}}"
+    {{/AUTH_TENANT}}
+  }
+
+  external_labels = {
+    hostname = "{{HOSTNAME}}",
+    platform = "{{PLATFORM}}",
+    {{CUSTOM_LABELS}}
+  }
+}

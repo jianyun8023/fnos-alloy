@@ -1,0 +1,13 @@
+appname               = grafana.alloy
+version               = 1.13.0
+display_name          = Grafana Alloy
+desc                  = 可观测性数据收集器，收集系统日志、应用日志发送到 Loki
+platform              = arm
+source                = thirdparty
+maintainer            = Grafana Labs
+distributor           = fnOS Community
+service_port          = 12345
+checkport             = true
+desktop_uidir         = ui
+desktop_applaunchname = grafana.alloy.main
+ctl_stop              = true
