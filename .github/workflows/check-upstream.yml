@@ -1,0 +1,56 @@
+name: Check Upstream Alloy Release
+
+on:
+  schedule:
+    - cron: "30 21 * * *"  # 每天 UTC 21:30 (北京时间 5:30)
+  workflow_dispatch:      # 支持手动触发
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest upstream release
+        id: upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LATEST=$(gh api repos/grafana/alloy/releases/latest --jq '.tag_name')
+          echo "tag=${LATEST}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Latest upstream release: ${LATEST}"
+
+      - name: Check if tag exists
+        id: check
+        run: |
+          if git rev-parse "refs/tags/${{ steps.upstream.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Tag ${{ steps.upstream.outputs.tag }} already exists, skipping"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Tag ${{ steps.upstream.outputs.tag }} not found, will create"
+          fi
+
+      - name: Create tag
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          TAG="${{ steps.upstream.outputs.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${TAG}"
+          git push origin "${TAG}"
+          echo "::notice::Created and pushed tag ${TAG}"
+
+      - name: Trigger release workflow
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.upstream.outputs.tag }}"
+          VERSION="${TAG#v}"
+          gh workflow run release.yml -f alloy_version="${VERSION}"
+          echo "::notice::Triggered release workflow for version ${VERSION}"
